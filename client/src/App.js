@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import styled from 'styled-components';
 import io from 'socket.io-client';
+import { useAuth } from './contexts/AuthContext';
+
+// Components
+import AuthForm from './components/AuthForm';
+import Dashboard from './components/Dashboard';
 import Lobby from './components/Lobby';
 import RoomWaiting from './components/RoomWaiting';
 import GameScreen from './components/GameScreen';
@@ -22,23 +28,47 @@ const LoadingScreen = styled.div`
   font-size: 1.5rem;
 `;
 
+const ErrorMessage = styled.div`
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #ff4757;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 5px;
+  z-index: 1000;
+  font-size: 14px;
+`;
+
 function App() {
+  const { currentUser, loading, logout } = useAuth();
   const [socket, setSocket] = useState(null);
   const [gameState, setGameState] = useState('lobby'); // lobby, waiting, playing, finished
   const [currentRoom, setCurrentRoom] = useState(null);
   const [currentPlayer, setCurrentPlayer] = useState(null);
   const [players, setPlayers] = useState([]);
   const [connectionError, setConnectionError] = useState('');
+  const [availableRooms, setAvailableRooms] = useState([]);
 
-  // Initialize socket connection
+  // Initialize socket connection for authenticated users
   useEffect(() => {
+    if (!currentUser) return;
+
     const newSocket = io(SOCKET_URL, {
-      transports: ['websocket', 'polling']
+      transports: ['websocket', 'polling'],
+      auth: {
+        uid: currentUser.uid,
+        displayName: currentUser.displayName
+      }
     });
 
     newSocket.on('connect', () => {
       console.log('Connected to server');
       setConnectionError('');
+      
+      // Request available rooms on connection
+      newSocket.emit('get_rooms');
     });
 
     newSocket.on('connect_error', (error) => {
@@ -54,14 +84,22 @@ function App() {
     // Room events
     newSocket.on('room_created', (data) => {
       setCurrentRoom(data.roomId);
-      setCurrentPlayer(data.player);
+      setCurrentPlayer({
+        ...data.player,
+        uid: currentUser.uid,
+        displayName: currentUser.displayName
+      });
       setGameState('waiting');
       setPlayers(data.players || [data.player]);
     });
 
     newSocket.on('room_joined', (data) => {
       setCurrentRoom(data.roomId);
-      setCurrentPlayer(data.player);
+      setCurrentPlayer({
+        ...data.player,
+        uid: currentUser.uid,
+        displayName: currentUser.displayName
+      });
       setPlayers(data.players);
       setGameState('waiting');
     });
@@ -82,6 +120,15 @@ function App() {
       setPlayers(data.players);
     });
 
+    newSocket.on('host_changed', (data) => {
+      console.log('Host changed to:', data.newHost);
+    });
+
+    // Room discovery events
+    newSocket.on('room_list', (data) => {
+      setAvailableRooms(data.rooms || []);
+    });
+
     // Game events
     newSocket.on('game_started', (data) => {
       setPlayers(data.players);
@@ -91,6 +138,9 @@ function App() {
     newSocket.on('game_ended', (data) => {
       setPlayers(data.players);
       setGameState('finished');
+      
+      // Update user stats when game ends
+      // This would typically be handled in GameScreen component
     });
 
     // Error handling
@@ -103,18 +153,34 @@ function App() {
     return () => {
       newSocket.close();
     };
-  }, []);
+  }, [currentUser]);
 
-  // Socket wrapper functions
-  const createRoom = (playerName) => {
+  // Enhanced socket wrapper functions
+  const createRoom = (roomData) => {
     if (socket) {
-      socket.emit('create_room', { playerName });
+      const { name, gameMode } = roomData;
+      socket.emit('create_room', { 
+        playerName: currentUser.displayName || 'Player',
+        roomName: name,
+        gameMode: gameMode,
+        uid: currentUser.uid
+      });
     }
   };
 
   const joinRoom = (roomId, playerName) => {
     if (socket) {
-      socket.emit('join_room', { roomId, playerName });
+      socket.emit('join_room', { 
+        roomId, 
+        playerName: playerName || currentUser.displayName || 'Player',
+        uid: currentUser.uid
+      });
+    }
+  };
+
+  const getAvailableRooms = () => {
+    if (socket) {
+      socket.emit('get_rooms');
     }
   };
 
@@ -141,82 +207,128 @@ function App() {
     setCurrentRoom(null);
     setCurrentPlayer(null);
     setPlayers([]);
+    
+    // Refresh room list when returning to lobby
+    if (socket) {
+      socket.emit('get_rooms');
+    }
   };
 
-  if (!socket) {
+  const handleStartGame = () => {
+    setGameState('lobby');
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await logout();
+      setGameState('lobby');
+      setCurrentRoom(null);
+      setCurrentPlayer(null);
+      setPlayers([]);
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+
+  // Show loading screen while checking authentication
+  if (loading) {
     return (
       <AppContainer>
         <LoadingScreen>
           <div>
             <h1>🎯 Quiz Duel: Brain Battle</h1>
-            <p>Connecting to server...</p>
+            <p>Loading...</p>
           </div>
         </LoadingScreen>
       </AppContainer>
     );
   }
 
+  // Show login/signup if not authenticated
+  if (!currentUser) {
+    return (
+      <AppContainer>
+        <Routes>
+          <Route path="/login" element={<AuthForm type="login" />} />
+          <Route path="/signup" element={<AuthForm type="signup" />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </AppContainer>
+    );
+  }
+
+  // Show main app for authenticated users
   return (
     <AppContainer>
-      {connectionError && (
-        <div style={{
-          position: 'fixed',
-          top: '20px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          background: '#ff4757',
-          color: 'white',
-          padding: '10px 20px',
-          borderRadius: '5px',
-          zIndex: 1000,
-          fontSize: '14px'
-        }}>
-          {connectionError}
-        </div>
-      )}
+      {connectionError && <ErrorMessage>{connectionError}</ErrorMessage>}
       
-      {gameState === 'lobby' && (
-        <Lobby 
-          onCreateRoom={createRoom}
-          onJoinRoom={joinRoom}
-          connectionError={connectionError}
+      <Routes>
+        <Route 
+          path="/" 
+          element={
+            <Dashboard 
+              onStartGame={handleStartGame}
+              onSignOut={handleSignOut}
+            />
+          } 
         />
-      )}
-
-      {gameState === 'waiting' && (
-        <RoomWaiting
-          roomId={currentRoom}
-          players={players}
-          currentPlayer={currentPlayer}
-          onSetReady={setPlayerReady}
-          onLeaveRoom={leaveRoom}
+        <Route 
+          path="/dashboard" 
+          element={
+            <Dashboard 
+              onStartGame={handleStartGame}
+              onSignOut={handleSignOut}
+            />
+          } 
         />
-      )}
-
-      {gameState === 'playing' && (
-        <GameScreen
-          socket={socket}
-          roomId={currentRoom}
-          players={players}
-          currentPlayer={currentPlayer}
-          onSubmitAnswer={submitAnswer}
-          onUseSkill={useSkill}
-          onLeaveGame={leaveRoom}
+        
+        <Route 
+          path="/lobby" 
+          element={
+            <Lobby 
+              onCreateRoom={createRoom}
+              onJoinRoom={joinRoom}
+              onGetRooms={getAvailableRooms}
+              connectionError={connectionError}
+              userName={currentUser.displayName || 'Player'}
+              userStats={currentUser.userProfile?.stats}
+              onGoHome={() => window.location.href = '/dashboard'}
+            />
+          } 
         />
-      )}
-
-      {gameState === 'finished' && (
-        <GameScreen
-          socket={socket}
-          roomId={currentRoom}
-          players={players}
-          currentPlayer={currentPlayer}
-          gameFinished={true}
-          onSubmitAnswer={submitAnswer}
-          onUseSkill={useSkill}
-          onLeaveGame={leaveRoom}
+        
+        <Route 
+          path="/room/:roomId/waiting" 
+          element={
+            <RoomWaiting
+              roomId={currentRoom}
+              players={players}
+              currentPlayer={currentPlayer}
+              onSetReady={setPlayerReady}
+              onLeaveRoom={leaveRoom}
+              onGoHome={() => window.location.href = '/dashboard'}
+            />
+          } 
         />
-      )}
+        
+        <Route 
+          path="/game/:roomId" 
+          element={
+            <GameScreen
+              socket={socket}
+              roomId={currentRoom}
+              players={players}
+              currentPlayer={currentPlayer}
+              onSubmitAnswer={submitAnswer}
+              onUseSkill={useSkill}
+              onLeaveGame={leaveRoom}
+              onGoHome={() => window.location.href = '/dashboard'}
+            />
+          } 
+        />
+        
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
     </AppContainer>
   );
 }
