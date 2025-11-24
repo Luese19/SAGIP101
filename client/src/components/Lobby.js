@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 
+const API_BASE_URL = process.env.REACT_APP_SOCKET_URL || 'http://localhost:5000';
+
 const LobbyContainer = styled.div`
   display: flex;
   justify-content: center;
@@ -586,7 +588,7 @@ function Lobby({ onCreateRoom, onJoinRoom, onGetRooms, connectionError, userName
   const loadAvailableRooms = async () => {
     setLoadingRooms(true);
     try {
-      const response = await fetch('http://localhost:5000/rooms');
+      const response = await fetch(`${API_BASE_URL}/rooms`);
       const data = await response.json();
       setAvailableRooms(data.rooms || []);
     } catch (error) {

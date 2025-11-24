@@ -718,11 +718,27 @@ function endGame(roomId, winner) {
   console.log(`Game ended in room ${roomId}, winner: ${winner?.name || 'None'} (${room.categoryInfo.name})`);
 }
 
+// Root route
+app.get('/', (req, res) => {
+  res.json({
+    message: 'Quiz Duel Server API',
+    status: 'Running',
+    version: '1.0.0',
+    endpoints: {
+      health: '/health',
+      rooms: '/rooms',
+      categories: '/categories',
+      stats: '/stats'
+    },
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Enhanced API endpoints
 app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
-    rooms: gameRooms.size, 
+  res.json({
+    status: 'OK',
+    rooms: gameRooms.size,
     players: players.size,
     categories: Object.keys(CATEGORIES).length,
     totalQuestions: getAllQuestions().length,
