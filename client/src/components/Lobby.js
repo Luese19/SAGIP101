@@ -493,6 +493,12 @@ const CATEGORIES = {
     color: "#607D8B",
     description: "Computers, internet, tech companies, and innovations"
   },
+  PROGRAMMING: {
+    name: "Programming & Development",
+    icon: "⚡",
+    color: "#FF6B35",
+    description: "Programming languages, frameworks, algorithms, and software development"
+  },
   LITERATURE: {
     name: "Literature",
     icon: "📚",
