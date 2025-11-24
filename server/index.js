@@ -32,7 +32,8 @@ const server = http.createServer(app);
 const getAllowedOrigins = () => {
   if (process.env.NODE_ENV === 'production') {
     const prodOrigins = [
-      "https://quiz-duel-tan.vercel.app"
+      "https://quiz-duel-tan.vercel.app",
+      "https://quiz-duel-lfb35cb6w-luese-andrey-s-projects.vercel.app"
     ];
     
     if (process.env.ALLOW_LOCALHOST === 'true') {
