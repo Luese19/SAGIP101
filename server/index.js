@@ -33,7 +33,8 @@ const getAllowedOrigins = () => {
   if (process.env.NODE_ENV === 'production') {
     const prodOrigins = [
       "https://quiz-duel-tan.vercel.app",
-      "https://quiz-duel-lfb35cb6w-luese-andrey-s-projects.vercel.app"
+      "https://sagip-101-git-main-luese-andrey-s-projects.vercel.app",
+      "https://sagip-101-2w24466qb-luese-andrey-s-projects.vercel.app"
     ];
     
     if (process.env.ALLOW_LOCALHOST === 'true') {
