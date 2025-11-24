@@ -54,7 +54,9 @@ function App() {
     if (!currentUser) return;
 
     const newSocket = io(SOCKET_URL, {
-      transports: ['websocket', 'polling'],
+      transports: ['polling', 'websocket'], // Try polling first, fallback to websocket
+      timeout: 20000, // Increase timeout to 20 seconds
+      forceNew: true,
       auth: {
         uid: currentUser.uid,
         displayName: currentUser.displayName

@@ -34,18 +34,12 @@ const getAllowedOrigins = () => {
   const isProduction = process.env.PORT && !process.env.NODE_ENV?.includes('dev');
 
   if (isProduction) {
-    const prodOrigins = [
+    return [
       "https://quiz-duel-tan.vercel.app",
       "https://sagip-101-git-main-luese-andrey-s-projects.vercel.app",
       "https://sagip-101-2w24466qb-luese-andrey-s-projects.vercel.app",
       "https://sagip101.onrender.com"
     ];
-
-    if (process.env.ALLOW_LOCALHOST === 'true') {
-      prodOrigins.push("http://localhost:3000", "http://localhost:19006");
-    }
-
-    return prodOrigins;
   }
 
   return ["http://localhost:3000", "http://localhost:19006"];
@@ -53,10 +47,33 @@ const getAllowedOrigins = () => {
 
 const io = socketIo(server, {
   cors: {
-    origin: getAllowedOrigins(),
+    origin: (origin, callback) => {
+      const allowedOrigins = getAllowedOrigins();
+      // Allow requests with no origin (mobile apps, etc.)
+      if (!origin) return callback(null, true);
+
+      // Check if origin is in allowed list or matches vercel pattern
+      const isAllowed = allowedOrigins.some(allowed => {
+        if (typeof allowed === 'string') {
+          return allowed === origin;
+        }
+        return false;
+      }) || origin.includes('.vercel.app');
+
+      if (isAllowed) {
+        callback(null, true);
+      } else {
+        console.log('CORS blocked origin:', origin);
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     methods: ["GET", "POST"],
     credentials: true
-  }
+  },
+  transports: ['polling', 'websocket'], // Support both polling and websocket
+  allowEIO3: true, // Allow Engine.IO v3 clients
+  pingTimeout: 60000, // Increase ping timeout
+  pingInterval: 25000 // Increase ping interval
 });
 
 app.use(cors());
@@ -258,6 +275,8 @@ const SKILLS = {
 // Socket.IO connection handling
 io.on('connection', (socket) => {
   console.log('New client connected:', socket.id);
+  console.log('Client transport:', socket.conn.transport.name);
+  console.log('Client headers:', socket.handshake.headers.origin);
 
   // Create room with enhanced features
   socket.on('create_room', (data) => {
