@@ -32,7 +32,7 @@ const server = http.createServer(app);
 const getAllowedOrigins = () => {
   if (process.env.NODE_ENV === 'production') {
     const prodOrigins = [
-      "https://your-app.netlify.app",
+      "https://quiz-duel-tan.vercel.app",
       "https://your-app.vercel.app",
       "https://your-custom-domain.com"
     ];

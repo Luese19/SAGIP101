@@ -44,12 +44,10 @@ const ErrorMessage = styled.div`
 function App() {
   const { currentUser, loading, logout } = useAuth();
   const [socket, setSocket] = useState(null);
-  const [gameState, setGameState] = useState('lobby'); // lobby, waiting, playing, finished
   const [currentRoom, setCurrentRoom] = useState(null);
   const [currentPlayer, setCurrentPlayer] = useState(null);
   const [players, setPlayers] = useState([]);
   const [connectionError, setConnectionError] = useState('');
-  const [availableRooms, setAvailableRooms] = useState([]);
 
   // Initialize socket connection for authenticated users
   useEffect(() => {
@@ -89,7 +87,6 @@ function App() {
         uid: currentUser.uid,
         displayName: currentUser.displayName
       });
-      setGameState('waiting');
       setPlayers(data.players || [data.player]);
     });
 
@@ -101,7 +98,6 @@ function App() {
         displayName: currentUser.displayName
       });
       setPlayers(data.players);
-      setGameState('waiting');
     });
 
     newSocket.on('room_players', (data) => {
@@ -126,19 +122,17 @@ function App() {
 
     // Room discovery events
     newSocket.on('room_list', (data) => {
-      setAvailableRooms(data.rooms || []);
+      // Room list received - handled by Lobby component
     });
 
     // Game events
     newSocket.on('game_started', (data) => {
       setPlayers(data.players);
-      setGameState('playing');
     });
 
     newSocket.on('game_ended', (data) => {
       setPlayers(data.players);
-      setGameState('finished');
-      
+
       // Update user stats when game ends
       // This would typically be handled in GameScreen component
     });
@@ -204,11 +198,10 @@ function App() {
   };
 
   const leaveRoom = () => {
-    setGameState('lobby');
     setCurrentRoom(null);
     setCurrentPlayer(null);
     setPlayers([]);
-    
+
     // Refresh room list when returning to lobby
     if (socket) {
       socket.emit('get_rooms');
@@ -216,13 +209,12 @@ function App() {
   };
 
   const handleStartGame = () => {
-    setGameState('lobby');
+    // Navigate to lobby
   };
 
   const handleSignOut = async () => {
     try {
       await logout();
-      setGameState('lobby');
       setCurrentRoom(null);
       setCurrentPlayer(null);
       setPlayers([]);

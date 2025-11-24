@@ -576,7 +576,6 @@ function Lobby({ onCreateRoom, onJoinRoom, onGetRooms, connectionError, userName
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [availableRooms, setAvailableRooms] = useState([]);
-  const [selectedRoomId, setSelectedRoomId] = useState('');
   const [loadingRooms, setLoadingRooms] = useState(false);
 
   // Load available rooms on component mount

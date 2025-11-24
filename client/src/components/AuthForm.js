@@ -130,11 +130,20 @@ const LoadingSpinner = styled.div`
   height: 20px;
   animation: spin 1s linear infinite;
   margin: 0 auto;
-  
+
   @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
   }
+`;
+
+const VersionInfo = styled.div`
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid #e0e0e0;
+  font-size: 0.8rem;
+  color: #999;
+  text-align: center;
 `;
 
 function AuthForm({ type = 'login' }) {
@@ -259,6 +268,11 @@ function AuthForm({ type = 'login' }) {
             </>
           )}
         </LinkText>
+
+        <VersionInfo>
+          <div>v1.0.0</div>
+          <div>{window.location.origin}</div>
+        </VersionInfo>
       </AuthCard>
     </AuthContainer>
   );
