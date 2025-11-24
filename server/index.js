@@ -30,7 +30,10 @@ const server = http.createServer(app);
 
 // Configure Socket.IO with CORS
 const getAllowedOrigins = () => {
-  if (process.env.NODE_ENV === 'production') {
+  // Check if we're in production (deployed environment)
+  const isProduction = process.env.PORT && !process.env.NODE_ENV?.includes('dev');
+
+  if (isProduction) {
     const prodOrigins = [
       "https://quiz-duel-tan.vercel.app",
       "https://sagip-101-git-main-luese-andrey-s-projects.vercel.app",
