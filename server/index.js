@@ -34,16 +34,17 @@ const getAllowedOrigins = () => {
     const prodOrigins = [
       "https://quiz-duel-tan.vercel.app",
       "https://sagip-101-git-main-luese-andrey-s-projects.vercel.app",
-      "https://sagip-101-2w24466qb-luese-andrey-s-projects.vercel.app"
+      "https://sagip-101-2w24466qb-luese-andrey-s-projects.vercel.app",
+      "https://sagip101.onrender.com"
     ];
-    
+
     if (process.env.ALLOW_LOCALHOST === 'true') {
       prodOrigins.push("http://localhost:3000", "http://localhost:19006");
     }
-    
+
     return prodOrigins;
   }
-  
+
   return ["http://localhost:3000", "http://localhost:19006"];
 };
 
