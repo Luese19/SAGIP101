@@ -95,6 +95,8 @@ function App() {
       });
       setPlayers(data.players || [data.player]);
       setTeams(data.room?.teams || null);
+      // Navigate to waiting room after creating
+      navigate(`/room/${data.roomId}/waiting`);
     });
 
     newSocket.on('room_joined', (data) => {
@@ -194,6 +196,12 @@ function App() {
   const setPlayerReady = () => {
     if (socket) {
       socket.emit('player_ready');
+    }
+  };
+
+  const startGame = () => {
+    if (socket) {
+      socket.emit('start_game');
     }
   };
 
@@ -316,6 +324,7 @@ function App() {
               teams={teams}
               maxPlayers={currentRoomData?.maxPlayers} // Pass room's max players
               onSetReady={setPlayerReady}
+              onStartGame={startGame}
               onLeaveRoom={leaveRoom}
               onGoHome={() => window.location.href = '/dashboard'}
             />

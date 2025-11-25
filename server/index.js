@@ -596,6 +596,23 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Host start game manually
+  socket.on('start_game', () => {
+    const playerInfo = players.get(socket.id);
+    if (!playerInfo) return;
+
+    const room = gameRooms.get(playerInfo.roomId);
+    if (!room) return;
+
+    const player = room.players.find(p => p.id === socket.id);
+    if (!player || !player.isHost) return;
+
+    // Check if room has minimum players (2)
+    if (room.players.length >= 2) {
+      startGame(playerInfo.roomId);
+    }
+  });
+
   // Submit answer
   socket.on('submit_answer', (data) => {
     const { answerIndex } = data;

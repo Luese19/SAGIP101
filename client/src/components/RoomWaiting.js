@@ -203,7 +203,7 @@ const InstructionsList = styled.ul`
   }
 `;
 
-function RoomWaiting({ roomId, players, currentPlayer, teams, onSetReady, onLeaveRoom, maxPlayers: roomMaxPlayers }) {
+function RoomWaiting({ roomId, players, currentPlayer, teams, onSetReady, onStartGame, onLeaveRoom, maxPlayers: roomMaxPlayers }) {
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
@@ -228,6 +228,8 @@ function RoomWaiting({ roomId, players, currentPlayer, teams, onSetReady, onLeav
   const canStartGame = !isTeamMode && players.length >= 2 && players.every(p => p.isReady);
   const playerCount = players.length;
   const isRoomFull = playerCount >= maxPlayers;
+  const isHost = currentPlayer?.isHost;
+  const allPlayersReady = players.length >= 2 && players.every(p => p.isReady);
 
   return (
     <WaitingContainer>
@@ -311,13 +313,24 @@ function RoomWaiting({ roomId, players, currentPlayer, teams, onSetReady, onLeav
 
         <ButtonGroup>
           {!isTeamMode && (
-            <Button
-              className="primary"
-              onClick={handleReadyToggle}
-              disabled={isReady}
-            >
-              {isReady ? '✓ Ready!' : 'Ready Up'}
-            </Button>
+            <>
+              {isHost && allPlayersReady ? (
+                <Button
+                  className="primary"
+                  onClick={onStartGame}
+                >
+                  🚀 Start Game
+                </Button>
+              ) : (
+                <Button
+                  className="primary"
+                  onClick={handleReadyToggle}
+                  disabled={isReady}
+                >
+                  {isReady ? '✓ Ready!' : 'Ready Up'}
+                </Button>
+              )}
+            </>
           )}
           {isTeamMode && (
             <Button
