@@ -45,6 +45,7 @@ function App() {
   const { currentUser, loading, logout } = useAuth();
   const [socket, setSocket] = useState(null);
   const [currentRoom, setCurrentRoom] = useState(null);
+  const [currentRoomData, setCurrentRoomData] = useState(null);
   const [currentPlayer, setCurrentPlayer] = useState(null);
   const [players, setPlayers] = useState([]);
   const [teams, setTeams] = useState(null);
@@ -85,6 +86,7 @@ function App() {
     // Room events
     newSocket.on('room_created', (data) => {
       setCurrentRoom(data.roomId);
+      setCurrentRoomData(data.room);
       setCurrentPlayer({
         ...data.player,
         uid: currentUser.uid,
@@ -96,6 +98,7 @@ function App() {
 
     newSocket.on('room_joined', (data) => {
       setCurrentRoom(data.roomId);
+      setCurrentRoomData(data.room);
       setCurrentPlayer({
         ...data.player,
         uid: currentUser.uid,
@@ -204,6 +207,7 @@ function App() {
 
   const leaveRoom = () => {
     setCurrentRoom(null);
+    setCurrentRoomData(null);
     setCurrentPlayer(null);
     setPlayers([]);
     setTeams(null);
@@ -222,6 +226,7 @@ function App() {
     try {
       await logout();
       setCurrentRoom(null);
+      setCurrentRoomData(null);
       setCurrentPlayer(null);
       setPlayers([]);
       setTeams(null);
@@ -305,6 +310,7 @@ function App() {
               players={players}
               currentPlayer={currentPlayer}
               teams={teams}
+              maxPlayers={currentRoomData?.maxPlayers} // Pass room's max players
               onSetReady={setPlayerReady}
               onLeaveRoom={leaveRoom}
               onGoHome={() => window.location.href = '/dashboard'}

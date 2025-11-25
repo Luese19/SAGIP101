@@ -628,6 +628,7 @@ function Lobby({ onCreateRoom, onJoinRoom, onGetRooms, connectionError, userName
   const [roomName, setRoomName] = useState('');
   const [gameMode, setGameMode] = useState('CLASSIC');
   const [category, setCategory] = useState('GENERAL');
+  const [maxPlayers, setMaxPlayers] = useState(4);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [availableRooms, setAvailableRooms] = useState([]);
@@ -637,6 +638,14 @@ function Lobby({ onCreateRoom, onJoinRoom, onGetRooms, connectionError, userName
   useEffect(() => {
     loadAvailableRooms();
   }, []);
+
+  // Update max players when game mode changes
+  useEffect(() => {
+    const selectedMode = GAME_MODES[gameMode];
+    if (selectedMode) {
+      setMaxPlayers(selectedMode.maxPlayers);
+    }
+  }, [gameMode]);
 
   const loadAvailableRooms = async () => {
     setLoadingRooms(true);
@@ -675,6 +684,7 @@ function Lobby({ onCreateRoom, onJoinRoom, onGetRooms, connectionError, userName
       name: roomName.trim(),
       gameMode,
       category,
+      maxPlayers,
       hostName: userName
     };
 
@@ -798,7 +808,7 @@ function Lobby({ onCreateRoom, onJoinRoom, onGetRooms, connectionError, userName
             </RoomOptions>
             
             <SectionTitle>Choose Question Category</SectionTitle>
-            
+
             <CategoryGrid>
               {Object.entries(CATEGORIES).map(([catKey, cat]) => (
                 <CategoryCard
@@ -813,6 +823,40 @@ function Lobby({ onCreateRoom, onJoinRoom, onGetRooms, connectionError, userName
                 </CategoryCard>
               ))}
             </CategoryGrid>
+
+            <SectionTitle>Maximum Players (2-8)</SectionTitle>
+            <div style={{ margin: '20px 0', textAlign: 'center' }}>
+              <select
+                value={maxPlayers}
+                onChange={(e) => setMaxPlayers(parseInt(e.target.value))}
+                style={{
+                  padding: '12px 20px',
+                  borderRadius: '10px',
+                  border: '2px solid #e0e0e0',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  background: 'white',
+                  cursor: 'pointer',
+                  minWidth: '120px'
+                }}
+              >
+                {Array.from({ length: 7 }, (_, i) => i + 2).map(num => (
+                  <option key={num} value={num}>
+                    {num} Players
+                  </option>
+                ))}
+              </select>
+              {GAME_MODES[gameMode]?.isTeamMode && maxPlayers % 2 !== 0 && (
+                <div style={{
+                  color: '#ff9800',
+                  fontSize: '14px',
+                  marginTop: '8px',
+                  fontWeight: '500'
+                }}>
+                  ⚠️ Uneven teams may cause imbalance
+                </div>
+              )}
+            </div>
             
             <ButtonGroup>
               <Button 
@@ -877,7 +921,7 @@ function Lobby({ onCreateRoom, onJoinRoom, onGetRooms, connectionError, userName
                         </div>
                       </RoomHeader>
                       <RoomInfo>
-                        <span>👥 {room.players}/{room.maxPlayers}</span>
+                        <span>👥 {room.players}/{room.maxPlayers}{room.customMaxPlayers ? '*' : ''}</span>
                         <span>🕐 {formatTimeAgo(room.createdAt)}</span>
                       </RoomInfo>
                       <RoomHost>👑 Host: {room.host}</RoomHost>

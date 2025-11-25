@@ -309,7 +309,12 @@ function assignPlayerToTeam(room, playerData) {
   const teamA = room.teams.teamA;
   const teamB = room.teams.teamB;
 
-  // Assign to team with fewer players
+  // For even max players, try to balance teams
+  // For odd max players, allow slight imbalance
+  const totalPlayers = room.players.length;
+  const targetTeamSize = Math.ceil(room.maxPlayers / 2);
+
+  // Assign to team with fewer players, but allow some flexibility
   if (teamA.players.length <= teamB.players.length) {
     teamA.players.push(playerData);
     teamA.totalHealth += playerData.health;
@@ -324,7 +329,7 @@ function assignPlayerToTeam(room, playerData) {
     playerData.teamName = teamB.name;
   }
 
-  console.log(`Player ${playerData.name} assigned to ${playerData.teamName}`);
+  console.log(`Player ${playerData.name} assigned to ${playerData.teamName} (${teamA.players.length} vs ${teamB.players.length})`);
 }
 
 // Socket.IO connection handling
@@ -336,9 +341,10 @@ io.on('connection', (socket) => {
   // Create room with enhanced features
   socket.on('create_room', (data) => {
     const roomId = uuidv4().substr(0, 8).toUpperCase();
-    const { playerName, roomName, gameMode = 'CLASSIC', category = 'GENERAL' } = data;
+    const { playerName, roomName, gameMode = 'CLASSIC', category = 'GENERAL', maxPlayers: customMaxPlayers } = data;
     const mode = GAME_MODES[gameMode] || GAME_MODES.CLASSIC;
     const selectedCategory = CATEGORIES[category] || CATEGORIES.GENERAL;
+    const effectiveMaxPlayers = Math.min(Math.max(customMaxPlayers || mode.maxPlayers, 2), 8); // Clamp between 2-8
     
     const playerData = {
       id: socket.id,
@@ -363,7 +369,8 @@ io.on('connection', (socket) => {
       skills: { [socket.id]: {} },
       gameMode: gameMode,
       timerDuration: mode.timerDuration,
-      maxPlayers: mode.maxPlayers,
+      maxPlayers: effectiveMaxPlayers,
+      customMaxPlayers: customMaxPlayers || null, // Store original custom value
       category: category,
       categoryInfo: selectedCategory,
       createdAt: new Date().toISOString(),

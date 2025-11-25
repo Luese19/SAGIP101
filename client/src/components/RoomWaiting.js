@@ -203,7 +203,7 @@ const InstructionsList = styled.ul`
   }
 `;
 
-function RoomWaiting({ roomId, players, currentPlayer, teams, onSetReady, onLeaveRoom }) {
+function RoomWaiting({ roomId, players, currentPlayer, teams, onSetReady, onLeaveRoom, maxPlayers: roomMaxPlayers }) {
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
@@ -224,7 +224,7 @@ function RoomWaiting({ roomId, players, currentPlayer, teams, onSetReady, onLeav
   };
 
   const isTeamMode = teams !== null;
-  const maxPlayers = isTeamMode ? (teams?.teamA ? 6 : 4) : 4; // Simplified for now
+  const maxPlayers = roomMaxPlayers || (isTeamMode ? 6 : 4); // Use room max players or fallback
   const canStartGame = !isTeamMode && players.length >= 2 && players.every(p => p.isReady);
   const playerCount = players.length;
   const isRoomFull = playerCount >= maxPlayers;
