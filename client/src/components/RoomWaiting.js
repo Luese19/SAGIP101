@@ -43,8 +43,18 @@ const PlayerCard = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: ${props => props.isCurrentPlayer ? '#e8f4fd' : '#f8f9fa'};
-  border: 2px solid ${props => props.isCurrentPlayer ? '#667eea' : '#e0e0e0'};
+  background: ${props => {
+    if (props.isCurrentPlayer) return '#e8f4fd';
+    if (props.teamId === 'A') return '#e8f5e8';
+    if (props.teamId === 'B') return '#fff3e0';
+    return '#f8f9fa';
+  }};
+  border: 2px solid ${props => {
+    if (props.isCurrentPlayer) return '#667eea';
+    if (props.teamId === 'A') return '#4caf50';
+    if (props.teamId === 'B') return '#ff9800';
+    return '#e0e0e0';
+  }};
   border-radius: 10px;
   padding: 15px 20px;
   margin-bottom: 10px;
@@ -89,6 +99,16 @@ const HostBadge = styled.span`
   border-radius: 6px;
   font-size: 0.8rem;
   font-weight: bold;
+`;
+
+const TeamBadge = styled.span`
+  background: ${props => props.teamId === 'A' ? '#4caf50' : '#ff9800'};
+  color: white;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  margin-left: 8px;
 `;
 
 const ReadyBadge = styled.span`
@@ -183,7 +203,7 @@ const InstructionsList = styled.ul`
   }
 `;
 
-function RoomWaiting({ roomId, players, currentPlayer, onSetReady, onLeaveRoom }) {
+function RoomWaiting({ roomId, players, currentPlayer, teams, onSetReady, onLeaveRoom }) {
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
@@ -203,8 +223,11 @@ function RoomWaiting({ roomId, players, currentPlayer, onSetReady, onLeaveRoom }
     onLeaveRoom();
   };
 
-  const canStartGame = players.length >= 2 && players.every(p => p.isReady);
+  const isTeamMode = teams !== null;
+  const maxPlayers = isTeamMode ? (teams?.teamA ? 6 : 4) : 4; // Simplified for now
+  const canStartGame = !isTeamMode && players.length >= 2 && players.every(p => p.isReady);
   const playerCount = players.length;
+  const isRoomFull = playerCount >= maxPlayers;
 
   return (
     <WaitingContainer>
@@ -213,22 +236,36 @@ function RoomWaiting({ roomId, players, currentPlayer, onSetReady, onLeaveRoom }
           <h2>🎯 Room Waiting Area</h2>
           <RoomId>Room ID: {roomId}</RoomId>
           <p style={{ color: '#666', fontSize: '1.1rem' }}>
-            {playerCount}/4 Players Joined
+            {playerCount}/{maxPlayers} Players Joined
+            {isTeamMode && <span style={{ color: '#4caf50', fontWeight: 'bold' }}> (Team Mode)</span>}
           </p>
+          {isRoomFull && isTeamMode && (
+            <p style={{ color: '#ff9800', fontSize: '1rem', fontWeight: 'bold' }}>
+              ⚡ Room is full! Game starting automatically...
+            </p>
+          )}
         </RoomInfo>
 
         <PlayersList>
-          <h3 style={{ marginBottom: '20px', color: '#333' }}>Players</h3>
+          <h3 style={{ marginBottom: '20px', color: '#333' }}>
+            {teams ? 'Teams' : 'Players'}
+          </h3>
           {players.map((player) => (
-            <PlayerCard 
-              key={player.id} 
+            <PlayerCard
+              key={player.id}
               isCurrentPlayer={player.id === currentPlayer?.id}
+              teamId={player.teamId}
             >
               <PlayerInfo>
                 <PlayerAvatar>
                   {player.name.charAt(0).toUpperCase()}
                 </PlayerAvatar>
                 <PlayerName>{player.name}</PlayerName>
+                {player.teamId && (
+                  <TeamBadge teamId={player.teamId}>
+                    {player.teamName}
+                  </TeamBadge>
+                )}
               </PlayerInfo>
               <PlayerStatus>
                 {player.isHost && <HostBadge>Host</HostBadge>}
@@ -250,24 +287,48 @@ function RoomWaiting({ roomId, players, currentPlayer, onSetReady, onLeaveRoom }
         <Instructions>
           <InstructionsTitle>🎯 How to Play</InstructionsTitle>
           <InstructionsList>
-            <li>Answer questions correctly to earn skill points</li>
-            <li>Use skill points to attack other players</li>
-            <li>Each player starts with 100 HP</li>
-            <li>Last player standing wins!</li>
-            <li>Game starts automatically when all players are ready</li>
+            {isTeamMode ? (
+              <>
+                <li>You're assigned to a team automatically</li>
+                <li>Work together with your teammates</li>
+                <li>Answer questions correctly to earn skill points</li>
+                <li>Use skills to attack the opposing team</li>
+                <li>Each player starts with 100 HP</li>
+                <li>Last team standing wins!</li>
+                <li>Game starts automatically when room is full</li>
+              </>
+            ) : (
+              <>
+                <li>Answer questions correctly to earn skill points</li>
+                <li>Use skill points to attack other players</li>
+                <li>Each player starts with 100 HP</li>
+                <li>Last player standing wins!</li>
+                <li>Game starts automatically when all players are ready</li>
+              </>
+            )}
           </InstructionsList>
         </Instructions>
 
         <ButtonGroup>
-          <Button 
-            className="primary" 
-            onClick={handleReadyToggle}
-            disabled={isReady}
-          >
-            {isReady ? '✓ Ready!' : 'Ready Up'}
-          </Button>
-          <Button 
-            className="secondary" 
+          {!isTeamMode && (
+            <Button
+              className="primary"
+              onClick={handleReadyToggle}
+              disabled={isReady}
+            >
+              {isReady ? '✓ Ready!' : 'Ready Up'}
+            </Button>
+          )}
+          {isTeamMode && (
+            <Button
+              className="primary"
+              disabled={true}
+            >
+              {isRoomFull ? '🎮 Game Starting Soon...' : 'Waiting for Players...'}
+            </Button>
+          )}
+          <Button
+            className="secondary"
             onClick={handleLeaveRoom}
           >
             Leave Room

@@ -90,19 +90,49 @@ const GAME_MODES = {
     name: "Classic Battle",
     maxPlayers: 4,
     timerDuration: 5,
-    description: "Standard quiz battle with 5-second questions"
+    description: "Standard quiz battle with 5-second questions",
+    isTeamMode: false
   },
   RAPID: {
     name: "Rapid Fire",
     maxPlayers: 4,
     timerDuration: 3,
-    description: "Fast-paced 3-second questions"
+    description: "Fast-paced 3-second questions",
+    isTeamMode: false
   },
   SURVIVAL: {
     name: "Survival Mode",
     maxPlayers: 4,
     timerDuration: 5,
-    description: "No health system - elimination style"
+    description: "No health system - elimination style",
+    isTeamMode: false
+  },
+  ONE_VS_ONE: {
+    name: "1v1 Duel",
+    maxPlayers: 2,
+    timerDuration: 5,
+    description: "Head-to-head battle between two players",
+    isTeamMode: true,
+    teamSize: 1,
+    autoStart: true
+  },
+  TWO_VS_TWO: {
+    name: "2v2 Team Battle",
+    maxPlayers: 4,
+    timerDuration: 5,
+    description: "Team-based strategy with 2 players per team",
+    isTeamMode: true,
+    teamSize: 2,
+    autoStart: true
+  },
+  THREE_VS_THREE: {
+    name: "3v3 Team Clash",
+    maxPlayers: 6,
+    timerDuration: 5,
+    description: "Epic team warfare with 3 players per team",
+    isTeamMode: true,
+    teamSize: 3,
+    autoStart: true
   }
 };
 
@@ -272,6 +302,31 @@ const SKILLS = {
   }
 };
 
+// Team assignment helper function
+function assignPlayerToTeam(room, playerData) {
+  if (!room.isTeamMode || !room.teams) return;
+
+  const teamA = room.teams.teamA;
+  const teamB = room.teams.teamB;
+
+  // Assign to team with fewer players
+  if (teamA.players.length <= teamB.players.length) {
+    teamA.players.push(playerData);
+    teamA.totalHealth += playerData.health;
+    playerData.teamId = 'A';
+    playerData.teamColor = teamA.color;
+    playerData.teamName = teamA.name;
+  } else {
+    teamB.players.push(playerData);
+    teamB.totalHealth += playerData.health;
+    playerData.teamId = 'B';
+    playerData.teamColor = teamB.color;
+    playerData.teamName = teamB.name;
+  }
+
+  console.log(`Player ${playerData.name} assigned to ${playerData.teamName}`);
+}
+
 // Socket.IO connection handling
 io.on('connection', (socket) => {
   console.log('New client connected:', socket.id);
@@ -311,7 +366,24 @@ io.on('connection', (socket) => {
       maxPlayers: mode.maxPlayers,
       category: category,
       categoryInfo: selectedCategory,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      isTeamMode: mode.isTeamMode || false,
+      teams: mode.isTeamMode ? {
+        teamA: {
+          id: 'A',
+          name: 'Team Blue',
+          color: '#2196F3',
+          players: [playerData],
+          totalHealth: 100
+        },
+        teamB: {
+          id: 'B',
+          name: 'Team Red',
+          color: '#F44336',
+          players: [],
+          totalHealth: 0
+        }
+      } : null
     };
 
     gameRooms.set(roomId, roomData);
@@ -380,6 +452,11 @@ io.on('connection', (socket) => {
       playerData
     });
 
+    // Assign player to team if it's a team mode
+    if (room.isTeamMode) {
+      assignPlayerToTeam(room, playerData);
+    }
+
     socket.join(roomId);
 
     // Update available rooms
@@ -391,12 +468,17 @@ io.on('connection', (socket) => {
 
     // Notify room about new player
     socket.to(roomId).emit('player_joined', { player: playerData });
-    socket.emit('room_joined', { 
-      roomId, 
+    socket.emit('room_joined', {
+      roomId,
       player: playerData,
       players: room.players,
       room: room
     });
+
+    // Check for auto-start in team modes
+    if (room.isTeamMode && room.players.length >= room.maxPlayers) {
+      setTimeout(() => startGame(roomId), 1000); // Auto-start after 1 second
+    }
 
     // Broadcast room list update
     broadcastRoomList();
@@ -677,10 +759,23 @@ function processAnswer(roomId, playerId, isCorrect) {
   });
 
   // Check for game end
-  const alivePlayers = room.players.filter(p => p.health > 0);
-  if (alivePlayers.length <= 1) {
-    endGame(roomId, alivePlayers[0] || null);
-    return;
+  if (room.isTeamMode) {
+    // Team-based win condition
+    const teamAAlive = room.teams.teamA.players.some(p => p.health > 0);
+    const teamBAlive = room.teams.teamB.players.some(p => p.health > 0);
+
+    if (!teamAAlive || !teamBAlive) {
+      const winningTeam = teamAAlive ? room.teams.teamA : room.teams.teamB;
+      endGame(roomId, winningTeam);
+      return;
+    }
+  } else {
+    // Individual win condition
+    const alivePlayers = room.players.filter(p => p.health > 0);
+    if (alivePlayers.length <= 1) {
+      endGame(roomId, alivePlayers[0] || null);
+      return;
+    }
   }
 
   // Move to next turn
@@ -722,7 +817,7 @@ function endGame(roomId, winner) {
   if (!room) return;
 
   room.gameState = 'finished';
-  
+
   if (room.questionTimer) {
     clearTimeout(room.questionTimer);
   }
@@ -730,15 +825,37 @@ function endGame(roomId, winner) {
   // Remove from available rooms
   availableRooms.delete(roomId);
 
+  let winnerData;
+  if (room.isTeamMode && winner.players) {
+    // Team winner
+    winnerData = {
+      type: 'team',
+      teamId: winner.id,
+      teamName: winner.name,
+      teamColor: winner.color,
+      players: winner.players
+    };
+  } else {
+    // Individual winner
+    winnerData = {
+      type: 'individual',
+      name: winner ? winner.name : null,
+      player: winner
+    };
+  }
+
   io.to(roomId).emit('game_ended', {
-    winner: winner ? winner.name : null,
+    winner: winnerData,
     players: room.players,
+    teams: room.teams,
     gameMode: room.gameMode,
     category: room.category,
-    categoryInfo: room.categoryInfo
+    categoryInfo: room.categoryInfo,
+    isTeamMode: room.isTeamMode
   });
 
-  console.log(`Game ended in room ${roomId}, winner: ${winner?.name || 'None'} (${room.categoryInfo.name})`);
+  const winnerName = room.isTeamMode ? winner.name : (winner?.name || 'None');
+  console.log(`Game ended in room ${roomId}, winner: ${winnerName} (${room.categoryInfo.name})`);
 }
 
 // Root route

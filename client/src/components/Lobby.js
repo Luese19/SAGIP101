@@ -216,6 +216,7 @@ const RoomCard = styled.div`
   cursor: pointer;
   transition: all 0.3s ease;
   text-align: left;
+  position: relative;
 
   &:hover {
     border-color: #667eea;
@@ -281,6 +282,31 @@ const RoomInfo = styled.div`
 const RoomHost = styled.div`
   color: #666;
   font-size: 0.9rem;
+`;
+
+const TeamModeIndicator = styled.div`
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: ${props => props.isTeamMode ? '#4caf50' : '#ff9800'};
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: bold;
+  text-transform: uppercase;
+`;
+
+const AutoStartIndicator = styled.div`
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: #2196f3;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: bold;
 `;
 
 const RefreshButton = styled.button`
@@ -443,17 +469,44 @@ const GAME_MODES = {
   CLASSIC: {
     title: "Classic Battle",
     description: "Answer questions, earn points, attack opponents. Classic quiz duel experience.",
-    features: ["5-second timer", "All skill types available", "Full HP system"]
+    features: ["5-second timer", "All skill types available", "Full HP system"],
+    maxPlayers: 4,
+    isTeamMode: false
   },
   RAPID: {
     title: "Rapid Fire",
     description: "Fast-paced questions with shorter timer. Quick thinking required!",
-    features: ["3-second timer", "Faster gameplay", "Bonus points for speed"]
+    features: ["3-second timer", "Faster gameplay", "Bonus points for speed"],
+    maxPlayers: 4,
+    isTeamMode: false
   },
   SURVIVAL: {
     title: "Survival Mode",
     description: "One life, one chance. Answer correctly or face elimination!",
-    features: ["No health system", "Elimination style", "Highest stakes"]
+    features: ["No health system", "Elimination style", "Highest stakes"],
+    maxPlayers: 4,
+    isTeamMode: false
+  },
+  ONE_VS_ONE: {
+    title: "1v1 Duel",
+    description: "Head-to-head battle between two players. Winner takes all!",
+    features: ["Direct confrontation", "Auto-start when full", "Team-based"],
+    maxPlayers: 2,
+    isTeamMode: true
+  },
+  TWO_VS_TWO: {
+    title: "2v2 Team Battle",
+    description: "Team up with a partner for strategic quiz warfare!",
+    features: ["Team coordination", "Auto-start when full", "Strategic gameplay"],
+    maxPlayers: 4,
+    isTeamMode: true
+  },
+  THREE_VS_THREE: {
+    title: "3v3 Team Clash",
+    description: "Epic team battles with three players per side!",
+    features: ["Large scale battles", "Auto-start when full", "Complex strategy"],
+    maxPlayers: 6,
+    isTeamMode: true
   }
 };
 
@@ -601,26 +654,32 @@ function Lobby({ onCreateRoom, onJoinRoom, onGetRooms, connectionError, userName
   const handleCreateRoom = () => {
     setError('');
     setSuccess('');
-    
+
     if (!roomName.trim()) {
       setError('Please enter a room name');
       return;
     }
-    
+
     if (!category) {
       setError('Please select a category before creating the room');
       return;
     }
-    
+
+    const selectedMode = GAME_MODES[gameMode];
+    if (!selectedMode) {
+      setError('Please select a valid game mode');
+      return;
+    }
+
     const roomData = {
       name: roomName.trim(),
       gameMode,
       category,
       hostName: userName
     };
-    
+
     onCreateRoom(roomData);
-    setSuccess('Creating room...');
+    setSuccess(`Creating ${selectedMode.isTeamMode ? 'team' : 'individual'} room...`);
   };
 
   const handleJoinRoom = () => {
@@ -792,11 +851,20 @@ function Lobby({ onCreateRoom, onJoinRoom, onGetRooms, connectionError, userName
               <RoomsGrid>
                 {availableRooms.map((room) => {
                   const categoryInfo = getCategoryInfo(room.category);
+                  const gameModeInfo = GAME_MODES[room.gameMode] || { isTeamMode: false };
                   return (
                     <RoomCard
                       key={room.id}
                       onClick={() => handleJoinFromList(room)}
                     >
+                      <TeamModeIndicator isTeamMode={gameModeInfo.isTeamMode}>
+                        {gameModeInfo.isTeamMode ? 'Teams' : 'Solo'}
+                      </TeamModeIndicator>
+                      {gameModeInfo.isTeamMode && (
+                        <AutoStartIndicator>
+                          Auto-start
+                        </AutoStartIndicator>
+                      )}
                       <RoomHeader>
                         <RoomName>{room.name}</RoomName>
                         <div style={{ display: 'flex', alignItems: 'center' }}>

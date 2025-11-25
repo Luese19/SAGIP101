@@ -47,6 +47,7 @@ function App() {
   const [currentRoom, setCurrentRoom] = useState(null);
   const [currentPlayer, setCurrentPlayer] = useState(null);
   const [players, setPlayers] = useState([]);
+  const [teams, setTeams] = useState(null);
   const [connectionError, setConnectionError] = useState('');
 
   // Initialize socket connection for authenticated users
@@ -90,6 +91,7 @@ function App() {
         displayName: currentUser.displayName
       });
       setPlayers(data.players || [data.player]);
+      setTeams(data.room?.teams || null);
     });
 
     newSocket.on('room_joined', (data) => {
@@ -100,6 +102,7 @@ function App() {
         displayName: currentUser.displayName
       });
       setPlayers(data.players);
+      setTeams(data.room?.teams || null);
     });
 
     newSocket.on('room_players', (data) => {
@@ -203,6 +206,7 @@ function App() {
     setCurrentRoom(null);
     setCurrentPlayer(null);
     setPlayers([]);
+    setTeams(null);
 
     // Refresh room list when returning to lobby
     if (socket) {
@@ -220,6 +224,7 @@ function App() {
       setCurrentRoom(null);
       setCurrentPlayer(null);
       setPlayers([]);
+      setTeams(null);
     } catch (error) {
       console.error('Error signing out:', error);
     }
@@ -277,10 +282,10 @@ function App() {
           } 
         />
         
-        <Route 
-          path="/lobby" 
+        <Route
+          path="/lobby"
           element={
-            <Lobby 
+            <Lobby
               onCreateRoom={createRoom}
               onJoinRoom={joinRoom}
               onGetRooms={getAvailableRooms}
@@ -289,21 +294,22 @@ function App() {
               userStats={currentUser.userProfile?.stats}
               onGoHome={() => window.location.href = '/dashboard'}
             />
-          } 
+          }
         />
         
-        <Route 
-          path="/room/:roomId/waiting" 
+        <Route
+          path="/room/:roomId/waiting"
           element={
             <RoomWaiting
               roomId={currentRoom}
               players={players}
               currentPlayer={currentPlayer}
+              teams={teams}
               onSetReady={setPlayerReady}
               onLeaveRoom={leaveRoom}
               onGoHome={() => window.location.href = '/dashboard'}
             />
-          } 
+          }
         />
         
         <Route 
