@@ -601,7 +601,7 @@ const CATEGORIES = {
   }
 };
 
-function Lobby({ onCreateRoom, onJoinRoom, onGetRooms, connectionError, userName, userStats }) {
+function Lobby({ onCreateRoom, onJoinRoom, onGetRooms, connectionError, userName, userStats, availableRooms = [] }) {
   const [activeTab, setActiveTab] = useState('create');
   const [roomId, setRoomId] = useState('');
   const [roomName, setRoomName] = useState('');
@@ -610,13 +610,14 @@ function Lobby({ onCreateRoom, onJoinRoom, onGetRooms, connectionError, userName
   const [maxPlayers, setMaxPlayers] = useState(4);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [availableRooms, setAvailableRooms] = useState([]);
   const [loadingRooms, setLoadingRooms] = useState(false);
 
   // Load available rooms on component mount
   useEffect(() => {
-    loadAvailableRooms();
-  }, []);
+    if (onGetRooms) {
+      onGetRooms();
+    }
+  }, [onGetRooms]);
 
   // Update max players when game mode changes
   useEffect(() => {
@@ -626,17 +627,13 @@ function Lobby({ onCreateRoom, onJoinRoom, onGetRooms, connectionError, userName
     }
   }, [gameMode]);
 
-  const loadAvailableRooms = async () => {
+  const loadAvailableRooms = () => {
     setLoadingRooms(true);
-    try {
-      const response = await fetch(`${API_BASE_URL}/rooms`);
-      const data = await response.json();
-      setAvailableRooms(data.rooms || []);
-    } catch (error) {
-      console.error('Error loading rooms:', error);
-    } finally {
-      setLoadingRooms(false);
+    if (onGetRooms) {
+      onGetRooms();
     }
+    // Reset loading after a short delay since socket response is async
+    setTimeout(() => setLoadingRooms(false), 1000);
   };
 
   const handleCreateRoom = () => {
