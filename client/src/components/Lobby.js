@@ -601,7 +601,7 @@ const CATEGORIES = {
   }
 };
 
-function Lobby({ onCreateRoom, onJoinRoom, onGetRooms, connectionError, userName, userStats }) {
+function Lobby({ onCreateRoom, onJoinRoom, onGetRooms, connectionError, isConnected, userName, userStats }) {
   const [activeTab, setActiveTab] = useState('create');
   const [roomId, setRoomId] = useState('');
   const [roomName, setRoomName] = useState('');
@@ -727,6 +727,10 @@ function Lobby({ onCreateRoom, onJoinRoom, onGetRooms, connectionError, userName
         {connectionError && (
           <ErrorMessage>{connectionError}</ErrorMessage>
         )}
+
+        {!isConnected && !connectionError && (
+          <ErrorMessage>Connecting to server...</ErrorMessage>
+        )}
         
         {error && (
           <ErrorMessage>{error}</ErrorMessage>
@@ -843,10 +847,10 @@ function Lobby({ onCreateRoom, onJoinRoom, onGetRooms, connectionError, userName
             </div>
             
             <ButtonGroup>
-              <Button 
-                className="primary" 
+              <Button
+                className="primary"
                 onClick={handleCreateRoom}
-                disabled={!!connectionError || !roomName.trim()}
+                disabled={!!connectionError || !isConnected || !roomName.trim()}
               >
                 🚀 Create Room ({getGameModeInfo(gameMode).title} - {getCategoryInfo(category).name})
               </Button>
@@ -883,7 +887,8 @@ function Lobby({ onCreateRoom, onJoinRoom, onGetRooms, connectionError, userName
                   return (
                     <RoomCard
                       key={room.id}
-                      onClick={() => handleJoinFromList(room)}
+                      onClick={() => isConnected ? handleJoinFromList(room) : null}
+                      style={{ opacity: isConnected ? 1 : 0.5, cursor: isConnected ? 'pointer' : 'not-allowed' }}
                     >
                       <TeamModeIndicator isTeamMode={gameModeInfo.isTeamMode}>
                         {gameModeInfo.isTeamMode ? 'Teams' : 'Solo'}
@@ -935,10 +940,10 @@ function Lobby({ onCreateRoom, onJoinRoom, onGetRooms, connectionError, userName
             />
             
             <ButtonGroup>
-              <Button 
-                className="primary" 
+              <Button
+                className="primary"
                 onClick={handleJoinRoom}
-                disabled={!roomId.trim() || !!connectionError}
+                disabled={!roomId.trim() || !!connectionError || !isConnected}
               >
                 🔗 Join Room
               </Button>

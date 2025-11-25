@@ -45,6 +45,7 @@ function App() {
   const { currentUser, loading, logout } = useAuth();
   const navigate = useNavigate();
   const [socket, setSocket] = useState(null);
+  const [isConnected, setIsConnected] = useState(false);
   const [currentRoom, setCurrentRoom] = useState(null);
   const [currentRoomData, setCurrentRoomData] = useState(null);
   const [currentPlayer, setCurrentPlayer] = useState(null);
@@ -60,6 +61,9 @@ function App() {
       transports: ['polling', 'websocket'], // Try polling first, fallback to websocket
       timeout: 20000, // Increase timeout to 20 seconds
       forceNew: true,
+      reconnection: true, // Enable reconnection
+      reconnectionAttempts: 5, // Try to reconnect 5 times
+      reconnectionDelay: 1000, // Start with 1 second delay
       auth: {
         uid: currentUser.uid,
         displayName: currentUser.displayName
@@ -68,19 +72,22 @@ function App() {
 
     newSocket.on('connect', () => {
       console.log('Connected to server');
+      setIsConnected(true);
       setConnectionError('');
-      
+
       // Request available rooms on connection
       newSocket.emit('get_rooms');
     });
 
     newSocket.on('connect_error', (error) => {
       console.error('Connection error:', error);
+      setIsConnected(false);
       setConnectionError('Failed to connect to server. Please check if the server is running.');
     });
 
     newSocket.on('disconnect', () => {
       console.log('Disconnected from server');
+      setIsConnected(false);
       setConnectionError('Connection lost. Please refresh the page.');
     });
 
@@ -169,7 +176,7 @@ function App() {
 
   // Enhanced socket wrapper functions
   const createRoom = (roomData) => {
-    if (socket) {
+    if (socket && socket.connected) {
       const { name, gameMode, category, maxPlayers } = roomData;
       socket.emit('create_room', {
         playerName: currentUser.displayName || 'Player',
@@ -179,46 +186,60 @@ function App() {
         maxPlayers: maxPlayers,
         uid: currentUser.uid
       });
+    } else {
+      console.error('Socket not connected, cannot create room');
+      setConnectionError('Connection lost. Please refresh the page.');
     }
   };
 
   const joinRoom = (roomId, playerName) => {
-    if (socket) {
-      socket.emit('join_room', { 
-        roomId, 
+    if (socket && socket.connected) {
+      socket.emit('join_room', {
+        roomId,
         playerName: playerName || currentUser.displayName || 'Player',
         uid: currentUser.uid
       });
+    } else {
+      console.error('Socket not connected, cannot join room');
+      setConnectionError('Connection lost. Please refresh the page.');
     }
   };
 
   const getAvailableRooms = () => {
-    if (socket) {
+    if (socket && socket.connected) {
       socket.emit('get_rooms');
     }
   };
 
   const setPlayerReady = () => {
-    if (socket) {
+    if (socket && socket.connected) {
       socket.emit('player_ready');
+    } else {
+      console.error('Socket not connected, cannot set ready');
     }
   };
 
   const startGame = () => {
-    if (socket) {
+    if (socket && socket.connected) {
       socket.emit('start_game');
+    } else {
+      console.error('Socket not connected, cannot start game');
     }
   };
 
   const submitAnswer = (answerIndex) => {
-    if (socket) {
+    if (socket && socket.connected) {
       socket.emit('submit_answer', { answerIndex });
+    } else {
+      console.error('Socket not connected, cannot submit answer');
     }
   };
 
   const useSkill = (skillType, targetId) => {
-    if (socket) {
+    if (socket && socket.connected) {
       socket.emit('use_skill', { skillType, targetId });
+    } else {
+      console.error('Socket not connected, cannot use skill');
     }
   };
 
@@ -312,6 +333,7 @@ function App() {
               onJoinRoom={joinRoom}
               onGetRooms={getAvailableRooms}
               connectionError={connectionError}
+              isConnected={isConnected}
               userName={currentUser.displayName || 'Player'}
               userStats={currentUser.userProfile?.stats}
               onGoHome={() => window.location.href = '/dashboard'}
