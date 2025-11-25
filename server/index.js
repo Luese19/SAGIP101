@@ -36,7 +36,11 @@ const getAllowedOrigins = () => {
   if (isProduction) {
     return [
       "https://brainbrawl.sudotech.plus",
-      "https://www.brainbrawl.sudotech.plus"
+      "https://www.brainbrawl.sudotech.plus",
+      "https://duel-quiz-game-git-main-luese-andrey-s-projects.vercel.app",
+      "https://duel-quiz-game-h6i41qd5r-luese-andrey-s-projects.vercel.app",
+      "https://duel-quiz-game.vercel.app"
+
     ];
   }
 

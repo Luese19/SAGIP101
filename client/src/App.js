@@ -128,6 +128,11 @@ function App() {
 
     newSocket.on('players_updated', (data) => {
       setPlayers(data.players);
+      // Update currentPlayer if it's in the updated players
+      const updatedCurrentPlayer = data.players.find(p => p.id === currentPlayer?.id);
+      if (updatedCurrentPlayer) {
+        setCurrentPlayer(updatedCurrentPlayer);
+      }
     });
 
     newSocket.on('host_changed', (data) => {

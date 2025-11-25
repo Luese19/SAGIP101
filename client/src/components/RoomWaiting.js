@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import styled from 'styled-components';
 
 const WaitingContainer = styled.div`
@@ -204,17 +204,8 @@ const InstructionsList = styled.ul`
 `;
 
 function RoomWaiting({ roomId, players, currentPlayer, teams, onSetReady, onStartGame, onLeaveRoom, maxPlayers: roomMaxPlayers }) {
-  const [isReady, setIsReady] = useState(false);
-
-  useEffect(() => {
-    // Reset ready state when component mounts
-    setIsReady(false);
-  }, []);
-
   const handleReadyToggle = () => {
-    const newReadyState = !isReady;
-    setIsReady(newReadyState);
-    if (newReadyState) {
+    if (!currentPlayer?.isReady) {
       onSetReady();
     }
   };
@@ -325,9 +316,9 @@ function RoomWaiting({ roomId, players, currentPlayer, teams, onSetReady, onStar
                 <Button
                   className="primary"
                   onClick={handleReadyToggle}
-                  disabled={isReady}
+                  disabled={currentPlayer?.isReady}
                 >
-                  {isReady ? '✓ Ready!' : 'Ready Up'}
+                  {currentPlayer?.isReady ? '✓ Ready!' : 'Ready Up'}
                 </Button>
               )}
             </>
