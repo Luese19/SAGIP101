@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 
+const API_BASE_URL = process.env.REACT_APP_SOCKET_URL || 'http://localhost:5000';
+
 const LobbyContainer = styled.div`
   display: flex;
   justify-content: center;
@@ -599,7 +601,7 @@ const CATEGORIES = {
   }
 };
 
-function Lobby({ onCreateRoom, onJoinRoom, onGetRooms, connectionError, userName, userStats, availableRooms = [] }) {
+function Lobby({ onCreateRoom, onJoinRoom, onGetRooms, connectionError, userName, userStats }) {
   const [activeTab, setActiveTab] = useState('create');
   const [roomId, setRoomId] = useState('');
   const [roomName, setRoomName] = useState('');
@@ -608,14 +610,13 @@ function Lobby({ onCreateRoom, onJoinRoom, onGetRooms, connectionError, userName
   const [maxPlayers, setMaxPlayers] = useState(4);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [availableRooms, setAvailableRooms] = useState([]);
   const [loadingRooms, setLoadingRooms] = useState(false);
 
   // Load available rooms on component mount
   useEffect(() => {
-    if (onGetRooms) {
-      onGetRooms();
-    }
-  }, [onGetRooms]);
+    loadAvailableRooms();
+  }, []);
 
   // Update max players when game mode changes
   useEffect(() => {
@@ -625,13 +626,22 @@ function Lobby({ onCreateRoom, onJoinRoom, onGetRooms, connectionError, userName
     }
   }, [gameMode]);
 
-  const loadAvailableRooms = () => {
+  const loadAvailableRooms = async () => {
     setLoadingRooms(true);
-    if (onGetRooms) {
-      onGetRooms();
+    try {
+      // Primary: Try HTTP fetch
+      const response = await fetch(`${API_BASE_URL}/rooms`);
+      const data = await response.json();
+      setAvailableRooms(data.rooms || []);
+    } catch (error) {
+      console.error('Error loading rooms via HTTP:', error);
+      // Fallback: try socket if HTTP fails
+      if (onGetRooms) {
+        onGetRooms();
+      }
+    } finally {
+      setLoadingRooms(false);
     }
-    // Reset loading after a short delay since socket response is async
-    setTimeout(() => setLoadingRooms(false), 1000);
   };
 
   const handleCreateRoom = () => {

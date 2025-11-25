@@ -51,7 +51,6 @@ function App() {
   const [players, setPlayers] = useState([]);
   const [teams, setTeams] = useState(null);
   const [connectionError, setConnectionError] = useState('');
-  const [availableRooms, setAvailableRooms] = useState([]);
 
   // Initialize socket connection for authenticated users
   useEffect(() => {
@@ -141,7 +140,7 @@ function App() {
 
     // Room discovery events
     newSocket.on('room_list', (data) => {
-      setAvailableRooms(data.rooms || []);
+      // Room list received - Lobby component handles this via HTTP
     });
 
     // Game events
@@ -315,7 +314,6 @@ function App() {
               connectionError={connectionError}
               userName={currentUser.displayName || 'Player'}
               userStats={currentUser.userProfile?.stats}
-              availableRooms={availableRooms}
               onGoHome={() => window.location.href = '/dashboard'}
             />
           }
