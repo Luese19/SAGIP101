@@ -362,19 +362,70 @@ const SKILLS = {
     name: "Direct Shot",
     cost: 20,
     damage: 15,
-    description: "Deal 15 damage to one player"
+    description: "Deal 15 damage to one player",
+    unlockLevel: 1,
+    icon: "⚔️"
   },
   HEALTH_STEAL: {
     name: "Health Steal",
     cost: 30,
     damage: 10,
-    description: "Steal 10 HP from opponent"
+    description: "Steal 10 HP from opponent",
+    unlockLevel: 2,
+    icon: "🩸"
   },
   TIME_BOMB: {
     name: "Time Bomb",
     cost: 25,
     damage: 20,
-    description: "20 damage if next player answers wrong"
+    description: "20 damage if next player answers wrong",
+    unlockLevel: 3,
+    icon: "💣"
+  },
+  SHIELD: {
+    name: "Shield",
+    cost: 15,
+    damage: 0,
+    description: "Block next attack for 2 turns",
+    unlockLevel: 4,
+    icon: "🛡️",
+    effect: "defensive"
+  },
+  KNOWLEDGE_BOOST: {
+    name: "Knowledge Boost",
+    cost: 25,
+    damage: 0,
+    description: "Double SP from next correct answer",
+    unlockLevel: 5,
+    icon: "📚",
+    effect: "buff"
+  },
+  REGENERATION: {
+    name: "Regeneration",
+    cost: 20,
+    damage: 0,
+    description: "Heal 5 HP per turn for 3 turns",
+    unlockLevel: 6,
+    icon: "🌱",
+    effect: "healing"
+  },
+  CONFUSION: {
+    name: "Confusion",
+    cost: 35,
+    damage: 0,
+    description: "Target answers wrong for 2 questions",
+    unlockLevel: 7,
+    icon: "🤯",
+    effect: "debuff"
+  },
+  MIRROR: {
+    name: "Mirror",
+    cost: 40,
+    damage: 0,
+    description: "Reflect next skill used against you",
+    unlockLevel: 8,
+    icon: "🔄",
+    effect: "reflect"
   }
 };
 
@@ -590,18 +641,20 @@ function GameScreen({ socket, roomId, players, currentPlayer, gameFinished = fal
         <SkillPanel>
           <SkillTitle>⚔️ Skills (You: {currentPlayerData.skillPoints} SP)</SkillTitle>
           <SkillsGrid>
-            {Object.entries(SKILLS).map(([skillType, skill]) => (
-              <SkillButton
-                key={skillType}
-                available={currentPlayerData.skillPoints >= skill.cost}
-                onClick={() => handleSkillUse(skillType)}
-                disabled={currentPlayerData.skillPoints < skill.cost}
-              >
-                <div>{skill.name}</div>
-                <SkillCost>{skill.cost} SP</SkillCost>
-                <SkillDescription>{skill.description}</SkillDescription>
-              </SkillButton>
-            ))}
+            {Object.entries(SKILLS)
+              .filter(([skillType]) => currentPlayerData.unlockedSkills?.includes(skillType))
+              .map(([skillType, skill]) => (
+                <SkillButton
+                  key={skillType}
+                  available={currentPlayerData.skillPoints >= skill.cost}
+                  onClick={() => handleSkillUse(skillType)}
+                  disabled={currentPlayerData.skillPoints < skill.cost}
+                >
+                  <div>{skill.icon} {skill.name}</div>
+                  <SkillCost>{skill.cost} SP</SkillCost>
+                  <SkillDescription>{skill.description}</SkillDescription>
+                </SkillButton>
+              ))}
           </SkillsGrid>
         </SkillPanel>
       )}

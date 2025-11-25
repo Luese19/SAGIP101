@@ -2,6 +2,7 @@ import React from 'react';
 import styled from 'styled-components';
 import { useAuth } from '../contexts/AuthContext';
 import Profile from './Profile';
+import SkillsPanel from './SkillsPanel';
 
 const DashboardContainer = styled.div`
   min-height: 100vh;
@@ -140,6 +141,13 @@ const ActionDescription = styled.p`
 function Dashboard({ onStartGame, onSignOut }) {
   const { userProfile } = useAuth();
 
+  // Mock player data - in real implementation, this would come from server/player state
+  const playerData = {
+    level: 3,
+    xp: 180,
+    unlockedSkills: ['DIRECT_SHOT', 'HEALTH_STEAL', 'TIME_BOMB']
+  };
+
   const handleCreateRoom = () => {
     window.location.href = '/lobby';
   };
@@ -185,6 +193,9 @@ function Dashboard({ onStartGame, onSignOut }) {
       <div className="profile-section">
         <Profile />
       </div>
+
+      {/* Skills Panel */}
+      <SkillsPanel playerData={playerData} />
 
       {/* Quick Actions */}
       <QuickActions>

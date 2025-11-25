@@ -280,27 +280,117 @@ const getQuestionsByCategory = (category) => {
   return questions[category] || [];
 };
 
-// Skills configuration
+// Leveling system configuration
+const LEVEL_CONFIG = {
+  XP_PER_CORRECT_ANSWER: 10,
+  XP_PER_GAME_WON: 15, // Reduced from 50 to 15-20 range (will randomize)
+  XP_PER_GAME_LOST: 5,  // Reduced from 20 to 5
+  LEVEL_XP_REQUIREMENTS: {
+    1: 0,
+    2: 100,
+    3: 250,
+    4: 450,
+    5: 700,
+    6: 1000,
+    7: 1350,
+    8: 1750,
+    9: 2200,
+    10: 2700
+  }
+};
+
+// Skills configuration with level requirements
 const SKILLS = {
   DIRECT_SHOT: {
     name: "Direct Shot",
     cost: 20,
     damage: 15,
-    description: "Deal 15 damage to one player"
+    description: "Deal 15 damage to one player",
+    unlockLevel: 1,
+    icon: "⚔️"
   },
   HEALTH_STEAL: {
     name: "Health Steal",
     cost: 30,
     damage: 10,
-    description: "Steal 10 HP from opponent"
+    description: "Steal 10 HP from opponent",
+    unlockLevel: 2,
+    icon: "🩸"
   },
   TIME_BOMB: {
     name: "Time Bomb",
     cost: 25,
     damage: 20,
-    description: "20 damage if next player answers wrong"
+    description: "20 damage if next player answers wrong",
+    unlockLevel: 3,
+    icon: "💣"
+  },
+  SHIELD: {
+    name: "Shield",
+    cost: 15,
+    damage: 0,
+    description: "Block next attack for 2 turns",
+    unlockLevel: 4,
+    icon: "🛡️",
+    effect: "defensive"
+  },
+  KNOWLEDGE_BOOST: {
+    name: "Knowledge Boost",
+    cost: 25,
+    damage: 0,
+    description: "Double SP from next correct answer",
+    unlockLevel: 5,
+    icon: "📚",
+    effect: "buff"
+  },
+  REGENERATION: {
+    name: "Regeneration",
+    cost: 20,
+    damage: 0,
+    description: "Heal 5 HP per turn for 3 turns",
+    unlockLevel: 6,
+    icon: "🌱",
+    effect: "healing"
+  },
+  CONFUSION: {
+    name: "Confusion",
+    cost: 35,
+    damage: 0,
+    description: "Target answers wrong for 2 questions",
+    unlockLevel: 7,
+    icon: "🤯",
+    effect: "debuff"
+  },
+  MIRROR: {
+    name: "Mirror",
+    cost: 40,
+    damage: 0,
+    description: "Reflect next skill used against you",
+    unlockLevel: 8,
+    icon: "🔄",
+    effect: "reflect"
   }
 };
+
+// Level calculation helper functions
+function calculateLevel(xp) {
+  for (let level = 10; level >= 1; level--) {
+    if (xp >= LEVEL_CONFIG.LEVEL_XP_REQUIREMENTS[level]) {
+      return level;
+    }
+  }
+  return 1;
+}
+
+function getXPForNextLevel(currentLevel) {
+  return LEVEL_CONFIG.LEVEL_XP_REQUIREMENTS[currentLevel + 1] || LEVEL_CONFIG.LEVEL_XP_REQUIREMENTS[currentLevel];
+}
+
+function getUnlockedSkills(level) {
+  return Object.entries(SKILLS)
+    .filter(([_, skill]) => skill.unlockLevel <= level)
+    .map(([key, skill]) => ({ key, ...skill }));
+}
 
 // Team assignment helper function
 function assignPlayerToTeam(room, playerData) {
@@ -354,7 +444,10 @@ io.on('connection', (socket) => {
       isHost: true,
       isReady: false,
       uid: data.uid || null,
-      displayName: playerName || null
+      displayName: playerName || null,
+      xp: 0,
+      level: 1,
+      unlockedSkills: ['DIRECT_SHOT'] // Start with basic skill unlocked
     };
 
     const roomData = {
@@ -450,7 +543,10 @@ io.on('connection', (socket) => {
       isHost: false,
       isReady: false,
       uid: uid || null,
-      displayName: playerName || null
+      displayName: playerName || null,
+      xp: 0,
+      level: 1,
+      unlockedSkills: ['DIRECT_SHOT'] // Start with basic skill unlocked
     };
 
     room.players.push(playerData);
@@ -539,6 +635,21 @@ io.on('connection', (socket) => {
     const pointsEarned = isCorrect ? 10 : 0;
     player.skillPoints += pointsEarned;
 
+    // Award XP for correct answers
+    if (isCorrect) {
+      player.xp += LEVEL_CONFIG.XP_PER_CORRECT_ANSWER;
+      const newLevel = calculateLevel(player.xp);
+      if (newLevel > player.level) {
+        player.level = newLevel;
+        player.unlockedSkills = getUnlockedSkills(newLevel).map(skill => skill.key);
+        // Notify player of level up
+        io.to(playerId).emit('level_up', {
+          newLevel: player.level,
+          unlockedSkills: player.unlockedSkills
+        });
+      }
+    }
+
     // Process answer and move to next turn
     processAnswer(playerInfo.roomId, socket.id, isCorrect);
   });
@@ -554,11 +665,17 @@ io.on('connection', (socket) => {
 
     const player = room.players.find(p => p.id === socket.id);
     const target = room.players.find(p => p.id === targetId);
-    
+
     if (!player || !target) return;
 
     const skill = SKILLS[skillType];
     if (!skill || player.skillPoints < skill.cost) return;
+
+    // Check if player has this skill unlocked
+    if (!player.unlockedSkills || !player.unlockedSkills.includes(skillType)) {
+      socket.emit('error_message', { message: 'Skill not unlocked yet!' });
+      return;
+    }
 
     // Apply skill effect
     player.skillPoints -= skill.cost;
@@ -828,6 +945,42 @@ function endGame(roomId, winner) {
   if (room.questionTimer) {
     clearTimeout(room.questionTimer);
   }
+
+  // Award XP for game completion
+  room.players.forEach(player => {
+    let xpGained = 0;
+
+    if (room.isTeamMode && winner.players) {
+      // Team mode - check if player's team won
+      const playerWon = winner.players.some(winnerPlayer => winnerPlayer.id === player.id);
+      if (playerWon) {
+        // Winners get 15-20 XP randomly
+        xpGained = LEVEL_CONFIG.XP_PER_GAME_WON + Math.floor(Math.random() * 6); // 15-20
+      } else {
+        xpGained = LEVEL_CONFIG.XP_PER_GAME_LOST; // 5 XP
+      }
+    } else {
+      // Individual mode
+      const playerWon = winner && winner.id === player.id;
+      if (playerWon) {
+        // Winners get 15-20 XP randomly
+        xpGained = LEVEL_CONFIG.XP_PER_GAME_WON + Math.floor(Math.random() * 6); // 15-20
+      } else {
+        xpGained = LEVEL_CONFIG.XP_PER_GAME_LOST; // 5 XP
+      }
+    }
+
+    player.xp += xpGained;
+    console.log(`${player.name} gained ${xpGained} XP (Total: ${player.xp})`);
+
+    // Check for level up
+    const newLevel = calculateLevel(player.xp);
+    if (newLevel > player.level) {
+      player.level = newLevel;
+      player.unlockedSkills = getUnlockedSkills(newLevel).map(skill => skill.key);
+      console.log(`${player.name} leveled up to Level ${newLevel}!`);
+    }
+  });
 
   // Remove from available rooms
   availableRooms.delete(roomId);
