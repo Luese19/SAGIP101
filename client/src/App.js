@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import io from 'socket.io-client';
 import { useAuth } from './contexts/AuthContext';
@@ -43,6 +43,7 @@ const ErrorMessage = styled.div`
 
 function App() {
   const { currentUser, loading, logout } = useAuth();
+  const navigate = useNavigate();
   const [socket, setSocket] = useState(null);
   const [currentRoom, setCurrentRoom] = useState(null);
   const [currentRoomData, setCurrentRoomData] = useState(null);
@@ -106,6 +107,8 @@ function App() {
       });
       setPlayers(data.players);
       setTeams(data.room?.teams || null);
+      // Navigate to waiting room after joining
+      navigate(`/room/${data.roomId}/waiting`);
     });
 
     newSocket.on('room_players', (data) => {
@@ -155,7 +158,7 @@ function App() {
     return () => {
       newSocket.close();
     };
-  }, [currentUser]);
+  }, [currentUser, navigate]);
 
   // Enhanced socket wrapper functions
   const createRoom = (roomData) => {

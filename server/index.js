@@ -106,33 +106,6 @@ const GAME_MODES = {
     timerDuration: 5,
     description: "No health system - elimination style",
     isTeamMode: false
-  },
-  ONE_VS_ONE: {
-    name: "1v1 Duel",
-    maxPlayers: 2,
-    timerDuration: 5,
-    description: "Head-to-head battle between two players",
-    isTeamMode: true,
-    teamSize: 1,
-    autoStart: true
-  },
-  TWO_VS_TWO: {
-    name: "2v2 Team Battle",
-    maxPlayers: 4,
-    timerDuration: 5,
-    description: "Team-based strategy with 2 players per team",
-    isTeamMode: true,
-    teamSize: 2,
-    autoStart: true
-  },
-  THREE_VS_THREE: {
-    name: "3v3 Team Clash",
-    maxPlayers: 6,
-    timerDuration: 5,
-    description: "Epic team warfare with 3 players per team",
-    isTeamMode: true,
-    teamSize: 3,
-    autoStart: true
   }
 };
 

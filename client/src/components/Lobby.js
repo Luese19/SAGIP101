@@ -486,27 +486,6 @@ const GAME_MODES = {
     features: ["No health system", "Elimination style", "Highest stakes"],
     maxPlayers: 4,
     isTeamMode: false
-  },
-  ONE_VS_ONE: {
-    title: "1v1 Duel",
-    description: "Head-to-head battle between two players. Winner takes all!",
-    features: ["Direct confrontation", "Auto-start when full", "Team-based"],
-    maxPlayers: 2,
-    isTeamMode: true
-  },
-  TWO_VS_TWO: {
-    title: "2v2 Team Battle",
-    description: "Team up with a partner for strategic quiz warfare!",
-    features: ["Team coordination", "Auto-start when full", "Strategic gameplay"],
-    maxPlayers: 4,
-    isTeamMode: true
-  },
-  THREE_VS_THREE: {
-    title: "3v3 Team Clash",
-    description: "Epic team battles with three players per side!",
-    features: ["Large scale battles", "Auto-start when full", "Complex strategy"],
-    maxPlayers: 6,
-    isTeamMode: true
   }
 };
 
