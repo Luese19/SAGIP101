@@ -491,7 +491,7 @@ io.on('connection', (socket) => {
       id: roomId,
       name: roomData.name,
       players: 1,
-      maxPlayers: mode.maxPlayers,
+      maxPlayers: effectiveMaxPlayers,
       gameMode: gameMode,
       gameState: 'waiting',
       host: playerData.name,
@@ -518,6 +518,7 @@ io.on('connection', (socket) => {
   // Join room
   socket.on('join_room', (data) => {
     const { roomId, playerName, uid } = data;
+    console.log(`Join room attempt: ${roomId}, player: ${playerName}`);
     const room = gameRooms.get(roomId);
 
     if (!room) {
@@ -578,9 +579,13 @@ io.on('connection', (socket) => {
       room: room
     });
 
-    // Check for auto-start in team modes
-    if (room.isTeamMode && room.players.length >= room.maxPlayers) {
-      setTimeout(() => startGame(roomId), 1000); // Auto-start after 1 second
+    // Check for auto-start when room is full
+    const mode = GAME_MODES[room.gameMode];
+    if (room.players.length >= room.maxPlayers) {
+      // Auto-start for team modes or small rooms (2 players or less)
+      if ((mode && mode.autoStart) || room.maxPlayers <= 2) {
+        setTimeout(() => startGame(roomId), 1000); // Auto-start after 1 second
+      }
     }
 
     // Broadcast room list update

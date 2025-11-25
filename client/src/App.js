@@ -160,12 +160,13 @@ function App() {
   // Enhanced socket wrapper functions
   const createRoom = (roomData) => {
     if (socket) {
-      const { name, gameMode, category } = roomData;
+      const { name, gameMode, category, maxPlayers } = roomData;
       socket.emit('create_room', {
         playerName: currentUser.displayName || 'Player',
         roomName: name,
         gameMode: gameMode,
         category: category,
+        maxPlayers: maxPlayers,
         uid: currentUser.uid
       });
     }
