@@ -35,10 +35,8 @@ const getAllowedOrigins = () => {
 
   if (isProduction) {
     return [
-      "https://quiz-duel-tan.vercel.app",
-      "https://sagip-101-git-main-luese-andrey-s-projects.vercel.app",
-      "https://sagip-101-2w24466qb-luese-andrey-s-projects.vercel.app",
-      "https://sagip101.onrender.com"
+      "https://brainbrawl.sudotech.plus",
+      "https://www.brainbrawl.sudotech.plus"
     ];
   }
 
@@ -418,9 +416,9 @@ io.on('connection', (socket) => {
       isReady: false,
       uid: data.uid || null,
       displayName: playerName || null,
-      xp: 0,
-      level: 1,
-      unlockedSkills: ['DIRECT_SHOT'] // Start with basic skill unlocked
+      xp: 0, // Reset XP to 0 for fresh start
+      level: 1, // Reset level to 1 for fresh start
+      unlockedSkills: ['DIRECT_SHOT'] // Start with only basic skill unlocked
     };
 
     const roomData = {
@@ -518,9 +516,9 @@ io.on('connection', (socket) => {
       isReady: false,
       uid: uid || null,
       displayName: playerName || null,
-      xp: 0,
-      level: 1,
-      unlockedSkills: ['DIRECT_SHOT'] // Start with basic skill unlocked
+      xp: 0, // Reset XP to 0 for fresh start
+      level: 1, // Reset level to 1 for fresh start
+      unlockedSkills: ['DIRECT_SHOT'] // Start with only basic skill unlocked
     };
 
     room.players.push(playerData);
